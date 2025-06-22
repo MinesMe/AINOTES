@@ -1,34 +1,31 @@
-// --- Ссылки на элементы из предыдущего шага ---
+// --- Ссылки на элементы из HTML ---
 const messageForm = document.getElementById('message-form');
 const messageInput = document.getElementById('message-input');
 const chatMessages = document.getElementById('chat-messages');
-
-// --- НОВЫЕ ССЫЛКИ И ПЕРЕМЕННЫЕ ДЛЯ РАСПОЗНАВАНИЯ РЕЧИ ---
 const recordButton = document.getElementById('recordButton');
-let isRecording = false; // Флаг, который отслеживает, идет ли запись
+
+// Флаг, который отслеживает, идет ли запись
+let isRecording = false;
 
 // 1. Проверяем, поддерживает ли браузер Web Speech API
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let recognition;
 
-if (SpeechRecognition) {
+if (SpeechRecognition && recordButton) {
     recognition = new SpeechRecognition();
 
     // Настройки для распознавания
-    recognition.lang = 'ru-RU'; // Язык распознавания
-    recognition.continuous = true; // Продолжать слушать, даже если есть паузы
-    recognition.interimResults = true; // Показывать промежуточные (нефинальные) результаты
+    recognition.lang = 'ru-RU';
+    recognition.continuous = true;
+    recognition.interimResults = true;
 
-    // --- ОБРАБОТЧИКИ СОБЫТИЙ РАСПОЗНАВАНИЯ ---
+    // --- Обработчики событий распознавания ---
 
-    // Событие, когда распознавание началось
     recognition.onstart = () => {
-        console.log('Распознавание речи началось...');
-        // Можно добавить визуальный эффект для кнопки, например, анимацию
+        isRecording = true;
         recordButton.style.animation = 'pulse 1.5s infinite';
     };
 
-    // Событие, когда получен результат
     recognition.onresult = (event) => {
         let interimTranscript = '';
         let finalTranscript = '';
@@ -41,63 +38,52 @@ if (SpeechRecognition) {
                 interimTranscript += transcript;
             }
         }
-        
-        // Помещаем промежуточный или финальный результат в поле ввода
         messageInput.value = finalTranscript + interimTranscript;
     };
 
-    // Событие при ошибке
     recognition.onerror = (event) => {
         console.error('Ошибка распознавания речи:', event.error);
     };
 
-    // Событие, когда распознавание закончилось
     recognition.onend = () => {
-        console.log('Распознавание речи завершено.');
         isRecording = false;
-        recordButton.style.animation = ''; // Убираем анимацию
+        recordButton.style.animation = '';
         
-        // Если в поле ввода есть текст после распознавания, отправляем его
         const recognizedText = messageInput.value.trim();
         if (recognizedText) {
-            // "Кликаем" на отправку формы программно
-            messageForm.requestSubmit();
+            displayMessage(recognizedText, 'user');
+            simulateAiResponse(recognizedText);
+            messageInput.value = '';
         }
     };
 
+    // --- Обработчик клика на кнопку микрофона ---
+    recordButton.addEventListener('click', () => {
+        if (isRecording) {
+            recognition.stop();
+        } else {
+            recognition.start();
+        }
+    });
+
 } else {
-    // Если API не поддерживается, сообщаем пользователю
-    console.error('Ваш браузер не поддерживает Web Speech API. Попробуйте Google Chrome.');
-    // Можно отключить кнопку или показать сообщение
-    recordButton.disabled = true;
-    alert('Распознавание речи не поддерживается в вашем браузере. Пожалуйста, используйте Google Chrome.');
+    if(!SpeechRecognition) {
+        alert('Распознавание речи не поддерживается в вашем браузере. Пожалуйста, используйте Google Chrome.');
+    }
+    if(recordButton) {
+        recordButton.disabled = true;
+    }
 }
 
 
-// 2. Обработчик клика на кнопку микрофона
-recordButton.addEventListener('click', () => {
-    if (isRecording) {
-        // Если запись идет, останавливаем ее
-        recognition.stop();
-        isRecording = false;
-    } else {
-        // Если запись не идет, начинаем ее
-        // Очищаем поле ввода перед началом новой записи
-        messageInput.value = '';
-        recognition.start();
-        isRecording = true;
-    }
-});
-
-
-// --- Код для чата из предыдущего шага (немного изменен) ---
+// --- Функции для чата ---
 
 messageForm.addEventListener('submit', (event) => {
     event.preventDefault();
     const userText = messageInput.value.trim();
     if (userText) {
         displayMessage(userText, 'user');
-        messageInput.value = ''; // Очищаем поле ввода
+        messageInput.value = '';
         simulateAiResponse(userText);
     }
 });
