@@ -1,98 +1,163 @@
-// --- Ссылки на элементы из HTML ---
-const messageForm = document.getElementById('message-form');
-const messageInput = document.getElementById('message-input');
-const chatMessages = document.getElementById('chat-messages');
-const recordButton = document.getElementById('recordButton');
+/**
+ * AINotes - AI Assistant Script
+ * This script handles speech recognition, chat functionality, and dynamic UI updates.
+ */
+document.addEventListener('DOMContentLoaded', () => {
 
-const AI_AVATAR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21.99 9.01c0-0.45-0.19-0.88-0.52-1.19l-7.5-7.5c-0.63-0.63-1.71-0.63-2.34 0l-7.5 7.5c-0.33 0.31-0.52 0.74-0.52 1.19s0.19 0.88 0.52 1.19l7.5 7.5c0.63 0.63 1.71 0.63 2.34 0l7.5-7.5c0.33-0.31 0.52-0.74 0.52-1.19zM11.5 16.5v-3.5h-3v-2h3V7.5l4 4.5-4 4.5z"/></svg>`;
-const USER_AVATAR_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>`;
-const THINKING_ELEMENT_ID = 'thinking-message';
+    // --- 1. КОНСТАНТЫ И ПЕРЕМЕННЫЕ ---
+    const recordButton = document.getElementById('recordButton');
+    const messageForm = document.getElementById('message-form');
+    const messageInput = document.getElementById('message-input');
+    const chatMessages = document.getElementById('chat-messages');
+    
+    // HTML-код для аватаров, чтобы легко вставлять их в сообщения
+    const AI_AVATAR_HTML = `<img src="devka.jpg" alt="AI Assistant">`;
+    const USER_AVATAR_HTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>`;
+    const THINKING_INDICATOR_ID = 'thinking-message';
 
-// Приветственное сообщение при загрузке
-window.addEventListener('load', () => {
-    displayMessage('Привет! Я ваш персональный ИИ-ассистент. Спросите меня о чем-нибудь или начните запись голоса.', 'ai');
-});
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition;
+    let isRecording = false;
 
-let isRecording = false;
+    // --- 2. ИНИЦИАЛИЗАЦИЯ ---
 
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition;
+    // Настройка распознавания речи, если оно поддерживается
+    if (SpeechRecognition) {
+        setupSpeechRecognition();
+    } else {
+        console.warn("Web Speech API не поддерживается в этом браузере.");
+        if (recordButton) recordButton.disabled = true;
+    }
 
-if (SpeechRecognition && recordButton) {
-    recognition = new SpeechRecognition();
-    recognition.lang = 'ru-RU';
-    recognition.continuous = true;
-    recognition.interimResults = true;
+    // Привязка обработчиков событий к элементам
+    setupEventListeners();
 
-    recognition.onstart = () => { isRecording = true; recordButton.style.animation = 'pulse 1.5s infinite'; };
-    recognition.onresult = (event) => {
-        let finalTranscript = '';
-        for (let i = 0; i < event.results.length; i++) {
-            if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript;
+    // Показываем приветственное сообщение
+    showWelcomeMessage();
+
+    // --- 3. НАСТРОЙКА ФУНКЦИЙ ---
+
+    function setupSpeechRecognition() {
+        recognition = new SpeechRecognition();
+        recognition.lang = 'ru-RU';
+        recognition.continuous = false; // Лучше false, чтобы он останавливался после паузы
+        recognition.interimResults = false; // Промежуточные результаты не нужны
+
+        recognition.onstart = () => {
+            isRecording = true;
+            recordButton.style.animation = 'pulse 1.5s infinite';
+        };
+
+        recognition.onresult = (event) => {
+            const spokenText = event.results[0][0].transcript.trim();
+            if (spokenText) {
+                messageInput.value = spokenText;
+                messageForm.dispatchEvent(new Event('submit')); // Программно отправляем форму
+            }
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Ошибка распознавания речи:', event.error);
+        };
+
+        recognition.onend = () => {
+            isRecording = false;
+            recordButton.style.animation = '';
+        };
+    }
+
+    function setupEventListeners() {
+        if (recordButton && recognition) {
+            recordButton.addEventListener('click', () => {
+                if (isRecording) {
+                    recognition.stop();
+                } else {
+                    recognition.start();
+                }
+            });
         }
-        messageInput.value = finalTranscript;
-    };
-    recognition.onerror = (event) => console.error('Ошибка распознавания:', event.error);
-    recognition.onend = () => {
-        isRecording = false;
-        recordButton.style.animation = '';
-        if (messageInput.value.trim()) messageForm.requestSubmit();
-    };
 
-    recordButton.addEventListener('click', () => {
-        if (isRecording) recognition.stop();
-        else recognition.start();
-    });
+        if (messageForm) {
+            messageForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const userText = messageInput.value.trim();
+                if (userText) {
+                    displayMessage(userText, 'user');
+                    messageInput.value = '';
+                    getAiResponse(userText);
+                }
+            });
+        }
+    }
 
-} else {
-    console.log('Web Speech API не поддерживается.');
-    if(recordButton) recordButton.disabled = true;
-}
+    function showWelcomeMessage() {
+        setTimeout(() => {
+            displayMessage('Привет! Я ваш персональный ИИ-ассистент. Спросите меня о чем-нибудь или начните запись голоса.', 'ai');
+        }, 500);
+    }
 
-messageForm.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const userText = messageInput.value.trim();
-    if (userText) {
-        displayMessage(userText, 'user');
-        messageInput.value = '';
-        simulateAiResponse(userText);
+    /**
+     * Создает и отображает сообщение в чате
+     * @param {string} text - Текст сообщения
+     * @param {'user' | 'ai'} sender - Отправитель
+     */
+    function displayMessage(text, sender) {
+        // Убираем индикатор "думает", если он есть
+        hideThinkingIndicator();
+
+        const messageWrapper = document.createElement('div');
+        messageWrapper.className = `message ${sender}`;
+
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar';
+        avatar.innerHTML = sender === 'ai' ? AI_AVATAR_HTML : USER_AVATAR_HTML;
+
+        const messageContent = document.createElement('div');
+        messageContent.className = 'message-content';
+        messageContent.textContent = text;
+        
+        messageWrapper.appendChild(avatar);
+        messageWrapper.appendChild(messageContent);
+        chatMessages.appendChild(messageWrapper);
+
+        // Прокручиваем вниз
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function showThinkingIndicator() {
+        // Проверяем, что индикатора еще нет
+        if (!document.getElementById(THINKING_INDICATOR_ID)) {
+            const thinkingMessage = `
+                <div class="message ai" id="${THINKING_INDICATOR_ID}">
+                    <div class="avatar">${AI_AVATAR_HTML}</div>
+                    <div class="message-content">
+                        <div class="dot"></div><div class="dot"></div><div class="dot"></div>
+                    </div>
+                </div>
+            `;
+            chatMessages.insertAdjacentHTML('beforeend', thinkingMessage);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+    }
+
+    function hideThinkingIndicator() {
+        const indicator = document.getElementById(THINKING_INDICATOR_ID);
+        if (indicator) {
+            indicator.remove();
+        }
+    }
+
+    /**
+     * Симулирует ответ от ИИ
+     * @param {string} userText - Текст пользователя для ответа
+     */
+    function getAiResponse(userText) {
+        showThinkingIndicator();
+
+        setTimeout(() => {
+            // Здесь в будущем будет реальный запрос к API
+            const responseText = `Отлично! Вы сказали: "${userText}". Теперь я готов к интеграции с настоящим API, чтобы давать осмысленные ответы.`;
+            displayMessage(responseText, 'ai');
+        }, 2000); // Задержка для симуляции
     }
 });
-
-function showThinkingIndicator() {
-    chatMessages.insertAdjacentHTML('beforeend', `
-        <div class="message ai" id="${THINKING_ELEMENT_ID}">
-            <div class="avatar">${AI_AVATAR_SVG}</div>
-            <div class="message-content">
-                <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-            </div>
-        </div>
-    `);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-function hideThinkingIndicator() {
-    const thinkingElement = document.getElementById(THINKING_ELEMENT_ID);
-    if (thinkingElement) thinkingElement.remove();
-}
-
-function displayMessage(text, sender) {
-    const avatar = sender === 'ai' ? AI_AVATAR_SVG : USER_AVATAR_SVG;
-    const messageHtml = `
-        <div class="message ${sender}">
-            <div class="avatar">${avatar}</div>
-            <div class="message-content">${text}</div>
-        </div>
-    `;
-    chatMessages.insertAdjacentHTML('beforeend', messageHtml);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
-}
-
-function simulateAiResponse(userText) {
-    showThinkingIndicator();
-    setTimeout(() => {
-        hideThinkingIndicator();
-        const aiText = `Отлично! Вы сказали: "${userText}". Теперь я готов к интеграции с настоящим API, чтобы давать осмысленные ответы.`;
-        displayMessage(aiText, 'ai');
-    }, 2500); // Увеличим задержку для демонстрации индикатора
-}
