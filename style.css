@@ -1,63 +1,227 @@
-/* Базовый сброс стилей, чтобы браузеры не добавляли свои отступы.
-   box-sizing: border-box; — очень полезное правило, которое упрощает расчеты размеров. */
+/* --- 1. ГЛОБАЛЬНЫЕ СТИЛИ И ПЕРЕМЕННЫЕ --- */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap');
+
+:root {
+    --bg-main: #131314;
+    --bg-chat: #1E1F20;
+    --text-primary: #E3E3E3;
+    --text-secondary: #8E9093;
+    --accent-primary: #8A6DFF;
+    --accent-user: #4785FF;
+    --border-color: #353739;
+
+    --font-family: 'Inter', sans-serif;
+    --border-radius-lg: 18px;
+    --border-radius-sm: 12px;
+}
+
 * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-/* Стили для всей страницы */
 body {
-    background-color: #121212; /* Черный, но не абсолютно черный. Выглядит мягче. */
-    color: #ffffff; /* Цвет текста по умолчанию - белый */
-    
-    /* Это магия Flexbox для центрирования. */
+    background-color: var(--bg-main);
+    color: var(--text-primary);
+    font-family: var(--font-family);
     display: flex;
-    justify-content: center; /* Центрируем по горизонтали */
-    align-items: center;    /* Центрируем по вертикали */
-    min-height: 100vh;      /* Занимаем всю высоту экрана */
-    font-family: sans-serif; /* Просто для примера, чтобы текст выглядел аккуратно */
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
 }
 
-/* Стили для нашей кнопки-кружка */
+/* --- 2. ОСНОВНОЙ МАКЕТ --- */
+.main-container {
+    display: flex;
+    align-items: center;
+    gap: 50px;
+    padding: 20px;
+}
+
 #recordButton {
-    width: 150px;       /* Ширина кружка */
-    height: 150px;      /* Высота кружка */
-    background-color: #ffffff; /* Белый фон */
-    border-radius: 50%; /* Это свойство и делает из квадрата круг */
-    border: none;       /* Убираем стандартную рамку кнопки */
-    cursor: pointer;    /* Меняем курсор на "руку" при наведении */
-
-    /* Добавляем немного интерактивности */
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-
-    /* Центрируем иконку внутри круга */
+    flex-shrink: 0; 
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(145deg, #2a2a2e, #1a1a1c);
+    border-radius: 50%;
+    border: 3px solid var(--border-color);
+    box-shadow: 0px 10px 30px rgba(0, 0, 0, 0.5);
+    cursor: pointer;
+    transition: all 0.3s ease;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
-/* Эффект при наведении курсора на кнопку */
 #recordButton:hover {
-    transform: scale(1.05); /* Немного увеличиваем кнопку */
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.3); /* Добавляем легкое свечение */
+    transform: scale(1.05);
+    box-shadow: 0px 15px 40px rgba(0, 0, 0, 0.6), 0 0 15px var(--accent-primary);
 }
 
-/* Стили для иконки микрофона (SVG) */
 #recordButton svg {
-    width: 50px;   /* Размер иконки */
-    height: 50px;
-    fill: #121212; /* Цвет иконки - такой же, как фон страницы */
+    width: 45px;
+    height: 45px;
+    fill: var(--accent-primary);
+    transition: all 0.3s ease;
 }
-/* --- Анимация для кнопки записи --- */
+
+#recordButton:hover svg {
+    fill: #A68FFF;
+}
+
 @keyframes pulse {
-    0% {
-        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
-    }
-    70% {
-        box-shadow: 0 0 0 20px rgba(255, 255, 255, 0);
-    }
-    100% {
-        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
-    }
+    0% { box-shadow: 0 0 0 0 rgba(138, 109, 255, 0.7); }
+    70% { box-shadow: 0 0 0 20px rgba(138, 109, 255, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(138, 109, 255, 0); }
+}
+
+
+/* --- 3. КОНТЕЙНЕР ЧАТА --- */
+.chat-container {
+    width: 450px;
+    height: 70vh;
+    min-height: 500px;
+    background-color: var(--bg-chat);
+    border-radius: var(--border-radius-lg);
+    border: 1px solid var(--border-color);
+    box-shadow: 0px 20px 50px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* --- 4. ОКНО СООБЩЕНИЙ --- */
+.chat-messages {
+    flex-grow: 1;
+    padding: 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+/* Стилизация скроллбара для Chrome */
+.chat-messages::-webkit-scrollbar { width: 6px; }
+.chat-messages::-webkit-scrollbar-track { background: transparent; }
+.chat-messages::-webkit-scrollbar-thumb { background: #4A4A4F; border-radius: 3px; }
+.chat-messages::-webkit-scrollbar-thumb:hover { background: #5E5E64; }
+
+
+/* --- 5. СТИЛИЗАЦИЯ СООБЩЕНИЙ --- */
+.message {
+    display: flex;
+    align-items: flex-start;
+    gap: 15px;
+    max-width: 90%;
+    animation: fadeIn 0.5s ease;
+}
+
+.message.user { align-self: flex-end; flex-direction: row-reverse; }
+.message.ai { align-self: flex-start; }
+
+.avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background-color: #353739;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+}
+.avatar svg { width: 20px; height: 20px; fill: var(--text-secondary); }
+
+.message.user .avatar { background-color: var(--accent-user); }
+.message.user .avatar svg { fill: white; }
+
+.message.ai .avatar { background-color: var(--accent-primary); }
+.message.ai .avatar svg { fill: white; }
+
+
+.message-content {
+    padding: 14px 18px;
+    background-color: #2b2d31;
+    border-radius: var(--border-radius-lg);
+    line-height: 1.6;
+    font-size: 16px;
+}
+.message.user .message-content { border-top-right-radius: 4px; }
+.message.ai .message-content { border-top-left-radius: 4px; }
+
+/* Индикатор "ИИ думает" */
+.message.thinking .message-content {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+}
+.message.thinking .dot {
+    width: 8px;
+    height: 8px;
+    background-color: var(--text-secondary);
+    border-radius: 50%;
+    animation: typing 1.4s infinite;
+}
+.message.thinking .dot:nth-child(2) { animation-delay: 0.2s; }
+.message.thinking .dot:nth-child(3) { animation-delay: 0.4s; }
+
+
+/* --- 6. ФОРМА ВВОДА --- */
+.message-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 20px;
+    background-color: var(--bg-chat);
+    border-top: 1px solid var(--border-color);
+}
+
+.input-wrapper {
+    flex-grow: 1;
+    display: flex;
+    align-items: center;
+    background-color: #2b2d31;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    transition: border-color 0.3s ease;
+}
+.input-wrapper:focus-within { border-color: var(--accent-primary); }
+
+.message-input {
+    flex-grow: 1;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text-primary);
+    font-size: 16px;
+    padding: 12px 15px;
+    font-family: var(--font-family);
+}
+
+.send-button {
+    width: 44px;
+    height: 44px;
+    background-color: var(--accent-primary);
+    border: none;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s ease;
+}
+.send-button:hover { background-color: #A68FFF; }
+.send-button svg { stroke: white; }
+
+/* --- 7. АНИМАЦИИ --- */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes typing {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1.0); }
 }
